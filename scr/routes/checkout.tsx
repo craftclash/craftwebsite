@@ -331,10 +331,7 @@ function Checkout() {
     }
   };
 
-  const copyPaymentDetail = async (
-    detail: "upi" | "order",
-    value: string,
-  ) => {
+  const copyPaymentDetail = async (detail: "upi" | "order", value: string) => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedPaymentDetail(detail);

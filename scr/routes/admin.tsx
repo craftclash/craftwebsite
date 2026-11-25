@@ -1300,8 +1300,8 @@ export function AdminPage({
                 <h2 className="mt-1 text-2xl">Set up UPI payments</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Checkout creates an exact-amount UPI QR code and app link.
-                  Start with these required settings; use the Test section to
-                  add and check Worker secrets.
+                  VITE_ Supabase values belong in Cloudflare build settings; use
+                  the Test section to add and check runtime secrets.
                 </p>
                 <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm">
                   <li>
@@ -1311,13 +1311,19 @@ export function AdminPage({
                     profile to <code className="font-mono">admin</code>.
                   </li>
                   <li>
-                    Configure the Supabase URL, anon key, service-role key, and
-                    your merchant <code className="font-mono">MERCHANT_UPI_ID</code>.
+                    Set <code className="font-mono">VITE_SUPABASE_URL</code> and{" "}
+                    <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> as
+                    build variables. Set{" "}
+                    <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code>{" "}
+                    and <code className="font-mono">MERCHANT_UPI_ID</code> as
+                    runtime secrets.
                   </li>
                   <li>
-                    Configure Turnstile site and secret keys, and allow{" "}
+                    Add <code className="font-mono">TURNSTILE_SITE_KEY</code>{" "}
+                    and <code className="font-mono">TURNSTILE_SECRET_KEY</code>{" "}
+                    as runtime secrets. Allow{" "}
                     <code className="font-mono">store.craftsmp.cc</code> as a
-                    hostname. Checkout requires this security check.
+                    Turnstile hostname. Checkout requires this security check.
                   </li>
                 </ol>
                 <div className="mt-4 rounded-xl border bg-muted/30 p-4 text-sm">
@@ -1327,10 +1333,10 @@ export function AdminPage({
                   <p className="mt-1 text-muted-foreground">
                     Add the Google OAuth client ID/secret, Gmail refresh token,
                     and mailbox address to enable automatic matching. Only
-                    authenticated FamApp emails with the exact order ID,
-                    amount, currency, and transaction reference are accepted.
-                    This relies on email evidence, not a payment-provider
-                    webhook; unmatched transfers stay pending for admin review.
+                    authenticated FamApp emails with the exact order ID, amount,
+                    currency, and transaction reference are accepted. This
+                    relies on email evidence, not a payment-provider webhook;
+                    unmatched transfers stay pending for admin review.
                   </p>
                 </div>
               </section>
