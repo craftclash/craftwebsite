@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TurnstileWidget } from "@/components/site/TurnstileWidget";
 import { ProductGrid } from "@/components/site/ProductCard";
-import heroImage from "@/assets/hero.jpg";
+import heroImage from "@/assets/hero.png";
 import { formatPrice, site } from "@/config/site";
 import { activeProducts } from "@/data/products";
 import { isValidMinecraftName } from "@/lib/minecraft";
@@ -398,7 +398,7 @@ function AccountPage() {
                 className="mb-10 inline-flex w-fit items-center transition-opacity hover:opacity-80"
               >
                 <img
-                  src="/craftlogo.webp"
+                  src="/craft-smp-emblem.png"
                   alt="Craft SMP"
                   className="h-14 w-[140px] object-contain"
                 />

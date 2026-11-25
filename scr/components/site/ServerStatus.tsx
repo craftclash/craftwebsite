@@ -3,11 +3,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { site } from "@/config/site";
 
-export function copyAddress() {
-  navigator.clipboard.writeText(site.serverAddress).then(
+export function copyAddress(
+  addressOrEvent: string | unknown = site.serverAddress,
+  label = "Server address",
+) {
+  const address =
+    typeof addressOrEvent === "string" ? addressOrEvent : site.serverAddress;
+  navigator.clipboard.writeText(address).then(
     () =>
-      toast.success("Server address copied!", {
-        description: site.serverAddress,
+      toast.success(`${label} copied!`, {
+        description: address,
       }),
     () => toast.error("Couldn't copy — please copy it manually."),
   );
@@ -15,15 +20,33 @@ export function copyAddress() {
 
 export function CopyIp() {
   return (
-    <button
-      onClick={copyAddress}
-      className="glass group inline-flex items-center gap-3 rounded-xl px-4 py-2.5 font-mono text-sm shadow-soft transition hover:bg-card"
-    >
-      <span className="size-2 rounded-full bg-success" aria-hidden />
-      {site.serverAddress}
-      <Copy className="size-4 text-ink transition-transform group-hover:scale-110" />
-      <span className="sr-only">Copy server address</span>
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => copyAddress(site.serverAddress, "Java IP")}
+        className="glass group inline-flex items-center gap-2 rounded-xl px-3 py-2 font-mono text-xs shadow-soft transition hover:bg-card sm:text-sm"
+      >
+        <span className="rounded bg-primary/50 px-1.5 py-0.5 font-sans text-[10px] font-bold text-ink">JAVA</span>
+        {site.serverAddress}
+        <Copy className="size-3.5 text-ink transition-transform group-hover:scale-110" />
+        <span className="sr-only">Copy Java server address</span>
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          copyAddress(
+            `${site.bedrockAddress}:${site.bedrockPort}`,
+            "Bedrock IP",
+          )
+        }
+        className="glass group inline-flex items-center gap-2 rounded-xl px-3 py-2 font-mono text-xs shadow-soft transition hover:bg-card sm:text-sm"
+      >
+        <span className="rounded bg-sky px-1.5 py-0.5 font-sans text-[10px] font-bold text-ink">BEDROCK</span>
+        {site.bedrockAddress}:{site.bedrockPort}
+        <Copy className="size-3.5 text-ink transition-transform group-hover:scale-110" />
+        <span className="sr-only">Copy Bedrock server address and port</span>
+      </button>
+    </div>
   );
 }
 

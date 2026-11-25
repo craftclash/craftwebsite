@@ -281,21 +281,34 @@ export async function scanGmailForCheckoutOrder(
       `Could not verify your order before scanning: ${error.message}`,
     );
   if (!order) throw new Error("Order not found in your account.");
-  if (order.status !== "pending") return { scanned: false };
+  if (order.status !== "pending")
+    return { scanned: false, automaticVerificationAvailable: true };
+
+  const { getServerEnv } = await import("@/lib/server-env.server");
+  const gmailSettings = [
+    "GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "GMAIL_REFRESH_TOKEN",
+    "GMAIL_ACCOUNT_EMAIL",
+  ];
+  if (gmailSettings.some((name) => !getServerEnv(name)?.trim())) {
+    return { scanned: false, automaticVerificationAvailable: false };
+  }
 
   if (checkoutScanInFlight) {
     await checkoutScanInFlight;
-    return { scanned: false };
+    return { scanned: false, automaticVerificationAvailable: true };
   }
 
-  if (Date.now() - lastCheckoutScanAt < 30_000) return { scanned: false };
+  if (Date.now() - lastCheckoutScanAt < 30_000)
+    return { scanned: false, automaticVerificationAvailable: true };
 
   lastCheckoutScanAt = Date.now();
   const scan = scanGmailNotificationsWithAdmin(admin);
   checkoutScanInFlight = scan;
   try {
     await scan;
-    return { scanned: true };
+    return { scanned: true, automaticVerificationAvailable: true };
   } finally {
     checkoutScanInFlight = null;
   }

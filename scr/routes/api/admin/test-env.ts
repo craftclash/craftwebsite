@@ -8,6 +8,8 @@ const envNames = [
   "VITE_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "MERCHANT_UPI_ID",
+  "TURNSTILE_SITE_KEY",
+  "TURNSTILE_SECRET_KEY",
   "GOOGLE_OAUTH_CLIENT_ID",
   "GOOGLE_OAUTH_CLIENT_SECRET",
   "GMAIL_REFRESH_TOKEN",
@@ -192,6 +194,45 @@ async function testGmailAccountEmail() {
   return "GMAIL_ACCOUNT_EMAIL matches the mailbox authorized by the refresh token.";
 }
 
+async function testTurnstileSecret() {
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        secret: requiredValue("TURNSTILE_SECRET_KEY"),
+        response: "craft-env-test-invalid-turnstile-token",
+      }),
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  const result: {
+    success?: unknown;
+    "error-codes"?: unknown;
+  } = await response.json();
+  if (!response.ok) {
+    throw new Error(`Turnstile secret check failed (HTTP ${response.status}).`);
+  }
+  const errorCodes = Array.isArray(result["error-codes"])
+    ? result["error-codes"].filter(
+        (code): code is string => typeof code === "string",
+      )
+    : [];
+  if (errorCodes.includes("invalid-input-secret")) {
+    throw new Error("Cloudflare rejected the Turnstile secret key.");
+  }
+  if (
+    result.success !== false ||
+    !errorCodes.includes("invalid-input-response")
+  ) {
+    throw new Error(
+      "Turnstile returned an unexpected response while checking the secret key.",
+    );
+  }
+  return "Cloudflare accepted the secret key; the intentionally invalid test token was rejected.";
+}
+
 async function runEnvTest(name: EnvName) {
   const url = requiredValue("VITE_SUPABASE_URL");
   const anonKey = requiredValue("VITE_SUPABASE_ANON_KEY");
@@ -238,6 +279,11 @@ async function runEnvTest(name: EnvName) {
       }
       return "Merchant UPI ID has a valid format.";
     }
+    case "TURNSTILE_SITE_KEY":
+      requiredValue(name);
+      return "Site key is configured. Complete the checkout widget to verify the site-key and hostname pairing.";
+    case "TURNSTILE_SECRET_KEY":
+      return await testTurnstileSecret();
     case "GOOGLE_OAUTH_CLIENT_ID":
       await testGoogleOAuthClient();
       return "Google OAuth client ID is accepted with the configured client secret.";

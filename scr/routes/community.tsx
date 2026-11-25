@@ -50,6 +50,13 @@ export const Route = createFileRoute("/community")({
       title="Craft SMP Community"
       sub="Survival is better together. Join the world, meet other players, and help make the server a welcoming place."
     >
+      <div className="community-network premium-showcase" aria-label="Connected Craft SMP community network">
+        <div className="network-core" aria-hidden />
+        <div className="network-node network-node-one" aria-hidden />
+        <div className="network-node network-node-two" aria-hidden />
+        <div className="network-node network-node-three" aria-hidden />
+        <div className="network-node network-node-four" aria-hidden />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {communityHighlights.map(({ icon: Icon, title, description }) => (
           <div

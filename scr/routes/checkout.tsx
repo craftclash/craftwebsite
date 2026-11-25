@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Check,
   CircleAlert,
+  Copy,
   CreditCard,
   PackageCheck,
+  RefreshCw,
   ShoppingBag,
 } from "lucide-react";
 import QRCode from "qrcode";
@@ -62,6 +65,11 @@ function Checkout() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [payment, setPayment] = useState<PendingPayment | null>(null);
+  const [paymentNotice, setPaymentNotice] = useState("");
+  const [copiedPaymentDetail, setCopiedPaymentDetail] = useState<
+    "upi" | "order" | null
+  >(null);
+  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -135,14 +143,23 @@ function Checkout() {
       return;
     let active = true;
     let timer: number | undefined;
+    let keepScanning = true;
     const scanForPayment = async () => {
       try {
-        await scanGmailForCheckoutOrder({
+        const result = await scanGmailForCheckoutOrder({
           data: {
             accessToken: activeAccessToken,
             orderId: activeOrderId,
           },
         });
+        if (!result.automaticVerificationAvailable) {
+          keepScanning = false;
+          if (active) {
+            setPaymentNotice(
+              "Automatic email matching is not set up. Your order will remain pending until an administrator verifies the transfer.",
+            );
+          }
+        }
       } catch (pollError) {
         if (active) {
           console.error("Could not refresh checkout payment status", pollError);
@@ -151,7 +168,7 @@ function Checkout() {
           );
         }
       } finally {
-        if (active)
+        if (active && keepScanning)
           timer = window.setTimeout(() => void scanForPayment(), 30_000);
       }
     };
@@ -297,6 +314,7 @@ function Checkout() {
         },
       });
       window.sessionStorage.setItem("craft-upi-order-id", result.orderId);
+      setPaymentNotice("");
       setPayment(result);
       clear();
     } catch (checkoutError) {
@@ -310,6 +328,50 @@ function Checkout() {
       setBusy(false);
       setTurnstileToken("");
       setTurnstileResetKey((key) => key + 1);
+    }
+  };
+
+  const copyPaymentDetail = async (
+    detail: "upi" | "order",
+    value: string,
+  ) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedPaymentDetail(detail);
+      window.setTimeout(() => setCopiedPaymentDetail(null), 2_000);
+    } catch (copyError) {
+      console.error("Could not copy payment details", copyError);
+      setError(
+        `Could not copy the ${detail === "upi" ? "UPI ID" : "order ID"}. Select and copy it manually.`,
+      );
+    }
+  };
+
+  const checkPaymentStatus = async () => {
+    if (!session?.access_token || !payment || checkingPaymentStatus) return;
+    setCheckingPaymentStatus(true);
+    setError("");
+    try {
+      const latest = await getUpiOrderDetails({
+        data: {
+          accessToken: session.access_token,
+          orderId: payment.orderId,
+        },
+      });
+      setPayment(latest);
+      setPaymentNotice(
+        latest.status === "pending"
+          ? "No verified payment has arrived yet. Do not pay again if your UPI app already shows the transfer as complete."
+          : "",
+      );
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? `Could not check payment status: ${statusError.message}`
+          : "Could not check payment status.",
+      );
+    } finally {
+      setCheckingPaymentStatus(false);
     }
   };
 
@@ -381,10 +443,6 @@ function Checkout() {
       );
     }
     const paymentExpired = currentTime >= new Date(payment.expiresAt).getTime();
-    const maskedVpa =
-      payment.vpa.length > 7
-        ? `${"*".repeat(payment.vpa.length - 7)}${payment.vpa.slice(-7)}`
-        : payment.vpa;
     return (
       <>
         <PageHeader
@@ -437,15 +495,49 @@ function Checkout() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Merchant UPI ID
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        Merchant UPI ID
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          void copyPaymentDetail("upi", payment.vpa)
+                        }
+                      >
+                        {copiedPaymentDetail === "upi" ? (
+                          <Check className="size-4" />
+                        ) : (
+                          <Copy className="size-4" />
+                        )}
+                        {copiedPaymentDetail === "upi" ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
                     <p className="break-all font-mono text-sm font-semibold">
-                      {maskedVpa}
+                      {payment.vpa}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Order ID</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">Order ID</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          void copyPaymentDetail("order", payment.orderId)
+                        }
+                      >
+                        {copiedPaymentDetail === "order" ? (
+                          <Check className="size-4" />
+                        ) : (
+                          <Copy className="size-4" />
+                        )}
+                        {copiedPaymentDetail === "order" ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
                     <p className="break-all font-mono text-xs">
                       {payment.orderId}
                     </p>
@@ -459,11 +551,38 @@ function Checkout() {
                     Request expires{" "}
                     {new Date(payment.expiresAt).toLocaleString()}.
                   </p>
+                  <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+                    The QR code and UPI link include the exact amount and order
+                    reference. Do not pay twice; this page checks for updates
+                    automatically.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={checkingPaymentStatus}
+                    onClick={() => void checkPaymentStatus()}
+                  >
+                    <RefreshCw
+                      className={`size-4 ${checkingPaymentStatus ? "animate-spin" : ""}`}
+                    />
+                    {checkingPaymentStatus
+                      ? "Checking…"
+                      : "Check payment status"}
+                  </Button>
                 </div>
               </div>
             </div>
           </section>
 
+          {paymentNotice && (
+            <p
+              role="status"
+              className="rounded-2xl border bg-card p-4 text-sm text-muted-foreground shadow-soft"
+            >
+              {paymentNotice}
+            </p>
+          )}
           {error && (
             <section className="rounded-2xl border bg-card p-6 shadow-soft">
               <p role="alert" className="text-sm text-destructive">

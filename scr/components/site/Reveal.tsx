@@ -63,8 +63,9 @@ export function SectionTitle({ eyebrow, title, sub }: { eyebrow?: string; title:
 
 export function PageHeader({ title, sub }: { title: string; sub?: string | undefined }) {
   return (
-    <section className="relative overflow-hidden bg-soft pixel-grid">
-      <div className="mx-auto max-w-6xl px-4 py-14 md:py-20 text-center">
+    <section className="page-header relative overflow-hidden bg-soft pixel-grid">
+      <div className="page-header-orbit" aria-hidden />
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-14 md:py-20 text-center">
         <h1 className="text-4xl md:text-5xl text-gradient">{title}</h1>
         {sub && <p className="mx-auto mt-4 max-w-xl text-muted-foreground">{sub}</p>}
       </div>

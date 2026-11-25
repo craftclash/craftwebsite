@@ -38,7 +38,7 @@ const cols = [
 
 export function Footer() {
   return (
-    <footer className="mt-20 border-t bg-soft">
+    <footer className="site-footer mt-20 border-t bg-soft">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="space-y-4">
           <Logo />

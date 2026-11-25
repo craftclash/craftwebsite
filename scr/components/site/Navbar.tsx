@@ -27,7 +27,7 @@ export function Logo() {
       aria-label="Craft SMP home"
     >
       <img
-        src="/craftlogo.webp"
+        src="/craft-smp-emblem.png"
         alt="Craft SMP"
         className="h-12 w-[110px] object-contain sm:w-[120px]"
       />

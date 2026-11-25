@@ -13,6 +13,7 @@ import {
   type FormEvent,
 } from "react";
 import {
+  ArrowRight,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
@@ -172,6 +173,8 @@ const envVarTests = [
   { name: "VITE_SUPABASE_ANON_KEY", label: "Supabase anon key" },
   { name: "SUPABASE_SERVICE_ROLE_KEY", label: "Supabase service-role key" },
   { name: "MERCHANT_UPI_ID", label: "Merchant UPI ID" },
+  { name: "TURNSTILE_SITE_KEY", label: "Turnstile site key" },
+  { name: "TURNSTILE_SECRET_KEY", label: "Turnstile secret key" },
   { name: "GOOGLE_OAUTH_CLIENT_ID", label: "Google OAuth client ID" },
   { name: "GOOGLE_OAUTH_CLIENT_SECRET", label: "Google OAuth client secret" },
   { name: "GMAIL_REFRESH_TOKEN", label: "Gmail refresh token" },
@@ -186,6 +189,7 @@ const envVarTests = [
 type EnvVarName = (typeof envVarTests)[number]["name"];
 const secretEnvNames: readonly EnvVarName[] = [
   "SUPABASE_SERVICE_ROLE_KEY",
+  "TURNSTILE_SECRET_KEY",
   "GOOGLE_OAUTH_CLIENT_SECRET",
   "GMAIL_REFRESH_TOKEN",
   "MINECRAFT_PLUGIN_TOKEN",
@@ -225,6 +229,7 @@ export function AdminPage({
 }: {
   initialSection: AdminSection;
 }) {
+  const demoMode = !isSupabaseConfigured;
   const isAdminSubpage = useRouterState({
     select: (state) => state.location.pathname !== "/admin",
   });
@@ -232,6 +237,7 @@ export function AdminPage({
   const [authorized, setAuthorized] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [adminMenuSearch, setAdminMenuSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [discounts, setDiscounts] = useState<DiscountRow[]>([]);
   const [votingSites, setVotingSites] = useState<VotingSite[]>([]);
@@ -1056,6 +1062,9 @@ export function AdminPage({
       ...order.items.map((item) => item.name),
     ].some((value) => value.toLowerCase().includes(term));
   });
+  const visibleAdminSections = adminSections.filter((section) =>
+    section.label.toLowerCase().includes(adminMenuSearch.trim().toLowerCase()),
+  );
 
   if (isAdminSubpage && initialSection === "overview") {
     return <Outlet />;
@@ -1066,13 +1075,9 @@ export function AdminPage({
       title="Admin dashboard"
       sub="Manage your catalog, voting links, discount codes and reward delivery queue."
     >
-      {!isSupabaseConfigured ? (
-        <p className="rounded-2xl border bg-card p-6">
-          Configure Supabase before using the admin dashboard.
-        </p>
-      ) : checking ? (
+      {checking && !demoMode ? (
         <p className="rounded-2xl border bg-card p-6">Checking admin access…</p>
-      ) : !authorized ? (
+      ) : !authorized && !demoMode ? (
         <div className="rounded-2xl border bg-card p-6">
           <p role="alert">
             {signedIn
@@ -1107,7 +1112,7 @@ export function AdminPage({
                 variant="glass"
                 className="rounded-xl bg-white/50"
                 onClick={() => void refresh()}
-                disabled={refreshing}
+                disabled={refreshing || demoMode}
               >
                 <RefreshCw
                   className={refreshing ? "size-4 animate-spin" : "size-4"}
@@ -1118,14 +1123,44 @@ export function AdminPage({
             <div className="admin-orb" aria-hidden="true" />
           </section>
 
+          {demoMode && (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm"
+            >
+              <p className="font-semibold">
+                Preview mode — Supabase is not configured.
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                You can browse the admin sections, but live data, refresh, and
+                changes are disabled until Supabase is set up.
+              </p>
+            </div>
+          )}
+
           <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
             <aside className="rounded-2xl border bg-card p-3 shadow-soft lg:sticky lg:top-24">
               <p className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Admin menu
               </p>
+              <div className="px-2 pb-3">
+                <Label className="sr-only" htmlFor="admin-section-search">
+                  Find an admin section
+                </Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="admin-section-search"
+                    value={adminMenuSearch}
+                    onChange={(event) => setAdminMenuSearch(event.target.value)}
+                    placeholder="Find a section…"
+                    className="h-10 rounded-xl bg-background pl-9"
+                  />
+                </div>
+              </div>
               <nav aria-label="Admin sections">
                 <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
-                  {adminSections.map(({ id, label, Icon }) => (
+                  {visibleAdminSections.map(({ id, label, Icon }) => (
                     <li key={id}>
                       <Link
                         to="/admin/$section"
@@ -1143,10 +1178,15 @@ export function AdminPage({
                     </li>
                   ))}
                 </ul>
+                {visibleAdminSections.length === 0 && (
+                  <p className="px-3 py-4 text-sm text-muted-foreground">
+                    No sections match “{adminMenuSearch}”.
+                  </p>
+                )}
               </nav>
             </aside>
 
-            <div className="min-w-0 space-y-6">
+            <div inert={demoMode} className="min-w-0 space-y-6">
               <div className="rounded-2xl border bg-card px-5 py-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Admin section
@@ -1172,6 +1212,7 @@ export function AdminPage({
                     detail: `${inactiveProductCount} hidden`,
                     Icon: Package,
                     color: "bg-sky/50",
+                    section: "shop",
                   },
                   {
                     label: "Active discounts",
@@ -1179,6 +1220,7 @@ export function AdminPage({
                     detail: `${discounts.length} total codes`,
                     Icon: Tags,
                     color: "bg-lilac/50",
+                    section: "promotions",
                   },
                   {
                     label: "Open deliveries",
@@ -1186,6 +1228,7 @@ export function AdminPage({
                     detail: `${queue.length} queue entries`,
                     Icon: ClipboardList,
                     color: "bg-blush/60",
+                    section: "fulfillment",
                   },
                   {
                     label: "Paid revenue",
@@ -1193,6 +1236,7 @@ export function AdminPage({
                     detail: `${paidOrders.length} paid orders loaded`,
                     Icon: CircleDollarSign,
                     color: "bg-success/15",
+                    section: "orders",
                   },
                   {
                     label: "Order history",
@@ -1200,24 +1244,34 @@ export function AdminPage({
                     detail: `Latest ${orderLimit} orders`,
                     Icon: CalendarDays,
                     color: "bg-primary/35",
+                    section: "orders",
                   },
-                ].map(({ label, value, detail, Icon, color }, index) => (
-                  <article
-                    key={label}
-                    className={`admin-enter admin-stagger-${index + 1} rounded-2xl border bg-card p-5 shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-glow`}
-                  >
-                    <span
-                      className={`grid size-10 place-items-center rounded-xl ${color}`}
+                ].map(
+                  ({ label, value, detail, Icon, color, section }, index) => (
+                    <Link
+                      key={label}
+                      to="/admin/$section"
+                      params={{ section }}
+                      aria-label={`${label}: ${value}. Open ${section}.`}
+                      className={`admin-enter admin-stagger-${index + 1} rounded-2xl border bg-card p-5 shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                     >
-                      <Icon className="size-5" />
-                    </span>
-                    <p className="mt-4 text-2xl font-bold">{value}</p>
-                    <p className="text-sm font-medium">{label}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {detail}
-                    </p>
-                  </article>
-                ))}
+                      <span
+                        className={`grid size-10 place-items-center rounded-xl ${color}`}
+                      >
+                        <Icon className="size-5" />
+                      </span>
+                      <p className="mt-4 text-2xl font-bold">{value}</p>
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {detail}
+                      </p>
+                      <span className="mt-3 inline-flex text-xs font-semibold text-ink">
+                        Manage {section}{" "}
+                        <ArrowRight className="ml-1 size-3.5" />
+                      </span>
+                    </Link>
+                  ),
+                )}
               </section>
 
               {error && (
@@ -1243,16 +1297,42 @@ export function AdminPage({
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Payments
                 </p>
-                <h2 className="mt-1 text-2xl">Automatic payment processing</h2>
+                <h2 className="mt-1 text-2xl">Set up UPI payments</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Incoming messages from no-reply@famapp.in are assigned to the
-                  newest pending order created before the message arrived. The
-                  message contents, amount, and sender authenticity are not
-                  independently verified. Confirm the transfer in your payment
-                  provider before relying on the order status. The Paper server
-                  scans every 30 seconds; orders become completed after delivery
-                  is acknowledged.
+                  Checkout creates an exact-amount UPI QR code and app link.
+                  Start with these required settings; use the Test section to
+                  add and check Worker secrets.
                 </p>
+                <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm">
+                  <li>
+                    Create a Supabase project and run{" "}
+                    <code className="font-mono">supabase/schema.sql</code> in
+                    its SQL Editor. Create your admin user and promote its
+                    profile to <code className="font-mono">admin</code>.
+                  </li>
+                  <li>
+                    Configure the Supabase URL, anon key, service-role key, and
+                    your merchant <code className="font-mono">MERCHANT_UPI_ID</code>.
+                  </li>
+                  <li>
+                    Configure Turnstile site and secret keys, and allow{" "}
+                    <code className="font-mono">store.craftsmp.cc</code> as a
+                    hostname. Checkout requires this security check.
+                  </li>
+                </ol>
+                <div className="mt-4 rounded-xl border bg-muted/30 p-4 text-sm">
+                  <p className="font-semibold">
+                    Optional: Gmail-assisted payment matching
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Add the Google OAuth client ID/secret, Gmail refresh token,
+                    and mailbox address to enable automatic matching. Only
+                    authenticated FamApp emails with the exact order ID,
+                    amount, currency, and transaction reference are accepted.
+                    This relies on email evidence, not a payment-provider
+                    webhook; unmatched transfers stay pending for admin review.
+                  </p>
+                </div>
               </section>
 
               <section

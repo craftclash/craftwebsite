@@ -2,6 +2,8 @@
 export const site = {
   name: "Craft SMP",
   serverAddress: "craftsmp.cc",
+  bedrockAddress: "play.craftsmp.cc",
+  bedrockPort: "19132",
   discordUrl: "", // e.g. "https://discord.gg/your-invite"
   supportEmail: "", // e.g. "support@yourdomain.com"
   currency: "INR",

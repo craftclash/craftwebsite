@@ -10,7 +10,6 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import hero from "@/assets/hero.jpg";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -20,7 +19,6 @@ import {
 } from "@/components/ui/accordion";
 import {
   CopyIp,
-  ServerStatus,
   copyAddress,
 } from "@/components/site/ServerStatus";
 import { ProductGrid } from "@/components/site/ProductCard";
@@ -119,11 +117,7 @@ function Index() {
         });
 
         intro
-          .from(".hero-eyebrow", {
-            autoAlpha: 0,
-            y: 16,
-            duration: 0.55,
-          })
+          .from(".hero-eyebrow", { autoAlpha: 0, y: 16, duration: 0.55 })
           .from(
             ".hero-title-line",
             { autoAlpha: 0, y: 30, stagger: 0.12, duration: 0.7 },
@@ -159,11 +153,6 @@ function Index() {
               duration: 0.7,
             },
             "-=0.65",
-          )
-          .from(
-            ".hero-status",
-            { autoAlpha: 0, y: 18, duration: 0.55 },
-            "-=0.2",
           );
 
         gsap.to(".hero-cube", {
@@ -184,16 +173,6 @@ function Index() {
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut",
-        });
-        gsap.to(".hero-art", {
-          y: 18,
-          ease: "none",
-          scrollTrigger: {
-            trigger: hero,
-            start: "top top",
-            end: "bottom top",
-            scrub: 0.6,
-          },
         });
       });
 
@@ -260,10 +239,20 @@ function Index() {
               const y = (event.clientY - bounds.top) / bounds.height - 0.5;
               event.currentTarget.style.setProperty("--tilt-x", `${y * -8}deg`);
               event.currentTarget.style.setProperty("--tilt-y", `${x * 10}deg`);
+              event.currentTarget.style.setProperty(
+                "--pointer-x",
+                `${(x + 0.5) * 100}%`,
+              );
+              event.currentTarget.style.setProperty(
+                "--pointer-y",
+                `${(y + 0.5) * 100}%`,
+              );
             }}
             onPointerLeave={(event: PointerEvent<HTMLDivElement>) => {
               event.currentTarget.style.setProperty("--tilt-x", "0deg");
               event.currentTarget.style.setProperty("--tilt-y", "0deg");
+              event.currentTarget.style.setProperty("--pointer-x", "50%");
+              event.currentTarget.style.setProperty("--pointer-y", "50%");
             }}
           >
             <div
@@ -271,15 +260,14 @@ function Index() {
               aria-hidden
             />
             <img
-              src={hero}
-              alt="A blocky adventurer on a floating island in a pastel sky"
-              width={1280}
-              height={1024}
-              className="hero-art relative rounded-[2rem] border-4 border-card shadow-glow"
+              src="/craft-smp-emblem.png"
+              alt="Craft SMP floating island emblem"
+              width={1151}
+              height={768}
+              className="hero-art"
+              decoding="async"
+              fetchPriority="high"
             />
-            <div className="hero-status absolute -bottom-10 left-1/2 w-[90%] -translate-x-1/2 sm:left-auto sm:right-4 sm:w-auto sm:translate-x-0">
-              <ServerStatus />
-            </div>
           </div>
         </div>
         <div className="h-16" />
