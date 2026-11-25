@@ -1,0 +1,7 @@
+name: CraftSmpLiveChat
+version: "${version}"
+main: com.craftsmp.livechat.CraftSmpLiveChat
+api-version: "26.3"
+description: Sends moderated Paper server chat to the Craft SMP website feed.
+libraries:
+  - com.google.code.gson:gson:2.13.1

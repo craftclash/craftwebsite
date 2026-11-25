@@ -1,0 +1,5 @@
+chat:
+  api-url: "https://store.craftsmp.cc"
+  token: "MINECRAFT_PLUGIN_TOKEN"
+  request-timeout-seconds: 8
+  per-player-cooldown-milliseconds: 750
